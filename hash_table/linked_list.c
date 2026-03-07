@@ -28,6 +28,7 @@ void free_list(List *list);
 node* find_node(const char* element, const List *list);
 int pop(List *list, const char *element);
 List* init_list();
+int add_transition(node* current_token, node *transition_token);
 
 /*
  * functions for work with transitions- rising massive
@@ -36,17 +37,17 @@ int note_token(node* current_token, node *transition_token);
 
 int append(const char *element, List *list) {
     if (list == NULL) {
-        fprintf(stderr, "Error: List pointer is NULL");
+        fprintf(stderr, "Error: List pointer is NULL\n");
         return 0;
     }
     node *newNode = malloc(sizeof(node));
     if (newNode == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for node");
+        fprintf(stderr, "Error: Memory allocation failed for node\n");
         return 0;
     }
     newNode->data = malloc((strlen(element) + 1) * sizeof(char));
     if (newNode->data == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for node data");
+        fprintf(stderr, "Error: Memory allocation failed for node data\n");
     }
 
     strcpy(newNode->data, element);
@@ -64,7 +65,7 @@ int append(const char *element, List *list) {
 
 void free_list(List *list) {
     if (list == NULL) {
-        fprintf(stderr, "Error: List pointer is NULL");
+        // fprintf(stderr, "Error: List pointer is NULL for free.\n");
         return;
     }
     node *curr = list->head;
@@ -196,4 +197,40 @@ int note_token(node* current_token, node *transition_token) {
     current_token->frequencies[index]++;
 
     return 1;
+}
+
+int add_transition(node* current_token, node *transition_token) {
+    if (current_token == NULL) {
+        fprintf(stderr, "Error: Token's node pointer is NULL!\n");
+        return -1;
+    }
+    if (transition_token == NULL) {
+        fprintf(stderr, "Error: Pointer to char is empty!\n");
+        return -1;
+    }
+
+    for (int index = 0; index < current_token->transition_count; index++) {
+        if (strcmp(current_token->transitions[index]->data, transition_token->data) == 0) {
+            current_token->frequency_sum++;
+            current_token->frequencies[index]++;
+            return index;
+        }
+    }
+
+    node **new_transitions = realloc(current_token->transitions, (current_token->transition_count + 1) * sizeof(node*));
+    int* new_frequencies = realloc(current_token->frequencies, (current_token->transition_count + 1) * sizeof(int));
+    if (new_transitions != NULL && new_frequencies != NULL) {
+        new_transitions[current_token->transition_count] = transition_token;
+        new_frequencies[current_token->transition_count] = 1;
+        current_token->transition_count++;
+        current_token->frequency_sum++;
+
+        current_token->transitions = new_transitions;
+        current_token->frequencies = new_frequencies;
+    } else {
+        fprintf(stderr, "Error: Memory allocation failed for transitions of \"%s\" token.", current_token->data);
+        return -1;
+    }
+
+    return current_token->transition_count - 1;
 }
