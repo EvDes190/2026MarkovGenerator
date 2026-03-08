@@ -14,7 +14,7 @@ typedef struct Hash_Dictionary {
 int hash(char *token);
 node* get_token(char *token, dictionary* dictionary);
 int put_token(char *token, dictionary *dictionary);
-dictionary* init(int size);
+dictionary* init_dictionary(int size);
 void free_dictionary(dictionary* dictionary);
 
 int hash(char *token) {
@@ -41,7 +41,7 @@ node* get_token(char *token, dictionary* dictionary) {
 int put_token(char *token, dictionary *dictionary) {
     int index = hash(token) % dictionary->size;
     if (find_node(token, dictionary->buckets[index]) == NULL) {
-        fprintf(stderr, "Token %s is already in hash table", token);
+        fprintf(stderr, "Token %s is already in hash table\n", token);
         return -1;
     }
 
@@ -54,7 +54,7 @@ int put_token(char *token, dictionary *dictionary) {
     return append(token, dictionary->buckets[index]);
 }
 
-dictionary* init(int size) {
+dictionary* init_dictionary(int size) {
     dictionary* dict = (dictionary*) malloc(sizeof(dictionary));
     dict->size = size;
     dict->buckets = calloc(size, sizeof(List*));
