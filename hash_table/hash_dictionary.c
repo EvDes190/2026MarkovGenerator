@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <string.h>
 
 #import "linked_list.c"
 
@@ -11,24 +10,22 @@ typedef struct Hash_Dictionary {
 /*
  * functions for work with Hash table
  */
-int hash(char *token);
+unsigned int hash(char *token);
 node* get_token(char *token, dictionary* dictionary);
-int put_token(char *token, dictionary *dictionary);
+node* put_token(char *token, dictionary *dictionary);
 dictionary* init_dictionary(int size);
 void free_dictionary(dictionary* dictionary);
 
-int hash(char *token) {
-    unsigned long long len = strlen(token);
+unsigned int hash(char *token) {
+    // using djb hash-function
 
-    char pair[2] = {token[0]};
-    if (len < 2) {
-        pair[1] = '0';
+    unsigned int result = 5381;
+    int c;
+    int i = 0;
+    while ((c = token[i]) != '\0') {
+        result = result * 33 + c;
+        i++;
     }
-
-    for (int i = 2; i < len; i++) {
-        pair[i % 2] ^= token[i % 2];
-    }
-    int result = pair[0] * pair[1];
 
     return result;
 }
@@ -38,24 +35,20 @@ node* get_token(char *token, dictionary* dictionary) {
     return find_node(token, dictionary->buckets[index]);
 }
 
-int put_token(char *token, dictionary *dictionary) {
+node* put_token(char *token, dictionary *dictionary) {
     int index = hash(token) % dictionary->size;
-    if (find_node(token, dictionary->buckets[index]) == NULL) {
-        fprintf(stderr, "Token %s is already in hash table\n", token);
-        return -1;
+    node* temp;
+    if (dictionary->buckets[index] == NULL) {
+        dictionary->buckets[index] = init_list();
+    } else if ((temp = find_node(token, dictionary->buckets[index])) != NULL) {
+        return temp;
     }
-
-    if (append(token, dictionary->buckets[index]) != 0) {
-        return index;
-    }
-
-    dictionary->buckets[index] = init_list();
 
     return append(token, dictionary->buckets[index]);
 }
 
 dictionary* init_dictionary(int size) {
-    dictionary* dict = (dictionary*) malloc(sizeof(dictionary));
+    dictionary* dict = malloc(sizeof(dictionary));
     dict->size = size;
     dict->buckets = calloc(size, sizeof(List*));
 
