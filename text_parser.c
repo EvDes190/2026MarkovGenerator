@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
+
+#import "hash_table/hash_dictionary.c"
 
 typedef struct Alphabet {
     char* rus_lower;
@@ -17,15 +20,6 @@ typedef struct Alphabet {
 Alphabet* init_alphabet() {
     Alphabet* alphabet = malloc(sizeof(Alphabet));
 
-    // alphabet = {
-    //     .rus_lower = malloc(33 * sizeof(char)),
-    //     .rus_higher = malloc(33 * sizeof(char)),
-    //     .eng_lower = "abcdefghijklmnopqrstuvwxyz",
-    //     .eng_higher= "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    //     .punct = ",.\n\t:;!?",
-    //     .special = "\"\'*%-+=(){}[]`~ ",
-    //     .number = "0123456789"
-    // };
     alphabet->rus_lower = malloc(33 * sizeof(char));
     alphabet->rus_higher = malloc(33 * sizeof(char));
     alphabet->eng_lower = malloc(27 * sizeof(char));
@@ -43,7 +37,7 @@ Alphabet* init_alphabet() {
 
     alphabet->eng_lower = "abcdefghijklmnopqrstuvwxyz";
     alphabet->eng_higher = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    alphabet->punct = ",.\n\t:;!?";
+    alphabet->punct = ",.\n\t:;!?–";
     alphabet->special = "\"\'*%-+=(){}[]`~ ";
     alphabet->number = "0123456789";
 
@@ -62,6 +56,8 @@ void free_alphabet(Alphabet* alphabet) {
 }
 
 int tokenize(FILE *input, FILE *output, Alphabet* alphabet) {
+    clock_t begin = clock();
+
     char symbol;
     char buffer[1025];
     int buffer_top = -1;
@@ -82,12 +78,10 @@ int tokenize(FILE *input, FILE *output, Alphabet* alphabet) {
         }
 
 
-        if (strchr(alphabet->rus_lower, symbol) != NULL || strchr(alphabet->eng_lower, symbol) != NULL) {
+        if (strchr(alphabet->rus_lower, symbol) != NULL || strchr(alphabet->eng_lower, symbol) != NULL || strchr(alphabet->number, symbol) != NULL) {
 
-            // printf("%c", symbol);
-            // fprintf(output, "-");
         } else if ((char_point = strchr(alphabet->rus_higher, symbol)) != NULL) {
-            // fprintf(output, "-");
+
             char_index = char_point - alphabet->rus_higher;
             symbol = alphabet->rus_lower[char_index];
 
@@ -114,5 +108,44 @@ int tokenize(FILE *input, FILE *output, Alphabet* alphabet) {
     buffer[++buffer_top] = '\0';
 
     fputs(buffer, output);
+
+    clock_t end = clock();
+    printf("tokenize: %lf seconds\n", (double) (end - begin) / CLOCKS_PER_SEC);
     return 0;
+}
+
+void text_processing(struct Hash_Dictionary *hash_dictionary, FILE *input) {
+    clock_t begin = clock();
+
+    char buffer[1000];
+    char c;
+    int buffer_top = -1;
+    int token_reading = 0;
+
+    node* prev = NULL;
+    node* curr = NULL;
+
+    while (fread(&c, 1, 1, input) != 0) {
+        if (c == ' ') {
+            if (token_reading == 1) {
+                buffer[++buffer_top] = '\0';
+                token_reading = 0;
+                buffer_top = -1;
+
+                prev = curr;
+                curr = put_token(buffer, hash_dictionary);
+                if (prev != NULL && curr != NULL) {
+                    note_token(prev, curr);
+                }
+            }
+
+        } else {
+            buffer[++buffer_top] = c;
+            if (token_reading == 0) {
+                token_reading = 1;
+            }
+        }
+    }
+    clock_t end = clock();
+    printf("processing: %lf seconds\n", (double) (end - begin) / CLOCKS_PER_SEC);
 }
