@@ -23,49 +23,65 @@ typedef struct list {
 /*
  * functions for work with Linked list
  */
-int append(const char *element, List *list);
+node* append(const char *element, List *list);
 void free_list(List *list);
+node* new_node(const char *str);
 node* find_node(const char* element, const List *list);
 int pop(List *list, const char *element);
 List* init_list();
-int add_transition(node* current_token, node *transition_token);
+// int add_transition(node* current_token, node *transition_token);
 
 /*
  * functions for work with transitions- rising massive
  */
 int note_token(node* current_token, node *transition_token);
 
-int append(const char *element, List *list) {
-    if (list == NULL) {
-        fprintf(stderr, "Error: List pointer is NULL\n");
-        return 0;
-    }
+node* new_node(const char* str) {
     node *newNode = malloc(sizeof(node));
     if (newNode == NULL) {
         fprintf(stderr, "Error: Memory allocation failed for node\n");
         return 0;
     }
-    newNode->data = malloc((strlen(element) + 1) * sizeof(char));
+    newNode->data = malloc((strlen(str) + 1) * sizeof(char));
     if (newNode->data == NULL) {
         fprintf(stderr, "Error: Memory allocation failed for node data\n");
     }
 
-    strcpy(newNode->data, element);
+    strcpy(newNode->data, str);
     newNode->next = NULL;
     newNode->transitions = NULL;
+    newNode->frequencies = NULL;
     newNode->frequency_sum = 0;
     newNode->transition_count = 0;
 
-    list->tail->next = newNode;
+    return newNode;
+}
+
+node* append(const char *element, List *list) {
+    if (list == NULL) {
+        list = init_list();
+    }
+    node *newNode = new_node(element);
+
+    if (newNode == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed for node\n");
+        return NULL;
+    }
+
+    if (list->head == NULL) {
+        list->head = newNode;
+
+    } else {
+        list->tail->next = newNode;
+    }
     list->tail = newNode;
     list->length++;
 
-    return 1;
+    return newNode;
 }
 
 void free_list(List *list) {
     if (list == NULL) {
-        // fprintf(stderr, "Error: List pointer is NULL for free.\n");
         return;
     }
     node *curr = list->head;
@@ -73,6 +89,7 @@ void free_list(List *list) {
         node *temp = curr->next;
         free(curr->transitions);
         free(curr->frequencies);
+        free(curr->data);
         free(curr);
         curr = temp;
     }
@@ -135,11 +152,11 @@ List* init_list() {
 int note_token(node* current_token, node *transition_token) {
     if (current_token == NULL) {
         fprintf(stderr, "Error: Token's node pointer is NULL!\n");
-        return 0;
+        return -1;
     }
     if (transition_token == NULL) {
         fprintf(stderr, "Error: Pointer to char is empty!\n");
-        return 0;
+        return -1;
     }
 
     int index = 0;
@@ -164,16 +181,25 @@ int note_token(node* current_token, node *transition_token) {
 
                 // swap if left frequency lower than right
                 if (index > 0) {
-                    if (current_token->frequencies[index] > current_token->frequencies[index - 1]) {
-                        int temp_freq = current_token->frequencies[index - 1];
-                        current_token->frequencies[index - 1] = current_token->frequencies[index];
-                        current_token->frequencies[index] = temp_freq;
-
-                        node* temp_trans = current_token->transitions[index];
-                        current_token->transitions[index] = current_token->transitions[index - 1];
-                        current_token->transitions[index - 1] = temp_trans;
+                    int swaping = index - 1;
+                    while (current_token->frequencies[index] > current_token->frequencies[swaping]) {
+                        if (swaping == 0) {
+                            swaping--;
+                            break;
+                        }
+                        swaping--;
                     }
+
+
+                    int temp_freq = current_token->frequencies[swaping + 1];
+                    current_token->frequencies[swaping + 1] = current_token->frequencies[index];
+                    current_token->frequencies[index] = temp_freq;
+
+                    node* temp_trans = current_token->transitions[index];
+                    current_token->transitions[index] = current_token->transitions[swaping + 1];
+                    current_token->transitions[swaping + 1] = temp_trans;
                 }
+
                 return 0;
             }
         }
@@ -186,9 +212,10 @@ int note_token(node* current_token, node *transition_token) {
         if (new_frequencies == NULL) {
             fprintf(stderr, "Error: Memory allocation failed for frequencies of transition of \"%s\" token.", current_token->data);
         }
-
+        // new_frequencies[current_token->transition_count] = 0;
         current_token->transitions = new_transitions;
         current_token->frequencies = new_frequencies;
+        current_token->frequencies[current_token->transition_count] = 0;
         current_token->transition_count++;
     }
 
