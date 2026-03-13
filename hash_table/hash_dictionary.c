@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <x86intrin.h>
+#include <time.h>
 
 #import "linked_list.c"
 
@@ -15,6 +17,8 @@ node* get_token(char *token, dictionary* dictionary);
 node* put_token(char *token, dictionary *dictionary);
 dictionary* init_dictionary(int size);
 void free_dictionary(dictionary* dictionary);
+node* random_token(dictionary* hash_dictionary, int seed);
+void print_chain(dictionary *hash_dictionary, FILE* output);
 
 unsigned int hash(char *token) {
     // using djb hash-function
@@ -61,4 +65,59 @@ void free_dictionary(dictionary* dictionary) {
     }
     free(dictionary->buckets);
     free(dictionary);
+}
+
+node* random_token(dictionary* hash_dictionary, int seed) {
+    if (hash_dictionary == NULL) {
+        fprintf(stderr, "Error: Empty dictionary\n");
+        return NULL;
+    }
+
+    srand(seed == 0 ? time(NULL) * clock() : seed);
+
+
+    int first_bucket = rand() % hash_dictionary->size;
+    int i = first_bucket;
+    for (;i % hash_dictionary->size != first_bucket - 1;
+        i++) {
+        if (hash_dictionary->buckets[i % hash_dictionary->size] != NULL)
+            break;
+        }
+    first_bucket = i % hash_dictionary->size;
+    if (hash_dictionary->buckets[first_bucket] == NULL) {
+        return NULL;
+    }
+
+    int first_node = rand() % hash_dictionary->buckets[first_bucket]->length;
+
+    node* tok = hash_dictionary->buckets[first_bucket]->head;
+    for (int j = 0; j < first_node; j++) {
+        tok = tok->next;
+    }
+
+    // fputs(tok->data, stdout);
+    return tok;
+}
+
+void print_chain(dictionary *hash_dictionary, FILE* output) {
+
+    for (int i = 0; i < hash_dictionary->size; i++) {
+        if (hash_dictionary->buckets[i] != NULL) {
+            node *temp = hash_dictionary->buckets[i]->head;
+            // fprintf(output, "\n==== %d ====\n\n", i);
+            while (temp != NULL) {
+
+                fprintf(output, ">%s<\n\t%d:\t", temp->data, temp->frequency_sum);
+                int j = 0;
+
+                while (temp->transition_count > j) {
+                    fprintf(output, "\"%s\": %d, ", temp->transitions[j]->data, temp->frequencies[j]);
+                    j++;
+                }
+                fprintf(output, "\n");
+                temp = temp->next;
+            }
+
+        }
+    }
 }

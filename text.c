@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdarg.h>
 
 #import "hash_table/hash_dictionary.c"
 
@@ -37,7 +38,11 @@ Alphabet* init_alphabet() {
 
     alphabet->eng_lower = "abcdefghijklmnopqrstuvwxyz";
     alphabet->eng_higher = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    alphabet->punct = ",.\n\t:;!?–";
+    char* punct = ",.\n\t:;!?";
+    alphabet->punct[0] = 0b10010110; // â€“
+    alphabet->punct[1] = 0b10100000; // NBSP
+    alphabet->punct[2] = '\0';
+    strcat(alphabet->punct, punct);
     alphabet->special = "\"\'*%-+=(){}[]`~ ";
     alphabet->number = "0123456789";
 
@@ -53,6 +58,26 @@ void free_alphabet(Alphabet* alphabet) {
     free(alphabet->special);
     free(alphabet->number);
     free(alphabet);
+}
+
+void cat(char* buf, int n, ...) {
+    va_list strings;
+    va_start(strings, n);
+    strcpy(buf, va_arg(strings, char*));
+    for (int i = 1; i < n; i++) {
+        strcat(buf, va_arg(strings, char*));
+    }
+    va_end(strings);
+}
+
+
+void split_filename(char *name, char *ext, const char *source) {
+    int len = strlen(source);
+
+    while (source[--len] != '.') {}
+    strcpy(ext, source + len);
+    memcpy(name, source, len + 1);
+    name[len] = '\0';
 }
 
 int tokenize(FILE *input, FILE *output, Alphabet* alphabet) {
@@ -114,7 +139,7 @@ int tokenize(FILE *input, FILE *output, Alphabet* alphabet) {
     return 0;
 }
 
-void text_processing(struct Hash_Dictionary *hash_dictionary, FILE *input) {
+void text_processing(FILE *input, struct Hash_Dictionary *hash_dictionary) {
     clock_t begin = clock();
 
     char buffer[1000];
@@ -148,4 +173,76 @@ void text_processing(struct Hash_Dictionary *hash_dictionary, FILE *input) {
     }
     clock_t end = clock();
     printf("processing: %lf seconds\n", (double) (end - begin) / CLOCKS_PER_SEC);
+}
+
+int is_punct(const Alphabet *alphabet, const char c) {
+    int i = 0;
+    while (alphabet->punct[i] != '\0') {
+        if (alphabet->punct[i] == c) {
+            return 1;
+        }
+
+        i++;
+    }
+
+    return 0;
+}
+
+int space_condition(const Alphabet* alphabet, node* prev, node* curr) {
+    return is_punct(alphabet, curr->data[0]) == 0 || alphabet->punct[0] == curr->data[0];
+}
+
+void generate(FILE* output, const Alphabet* alphabet, dictionary *hash_dictionary, int count, int seed) {
+    if (seed == 0) {
+        srand(time(NULL));
+    } else {
+        srand(seed);
+    }
+
+    clock_t begin = clock();
+
+    node* prev = random_token(hash_dictionary, seed);
+    node* curr = NULL;
+    if (prev == NULL) {
+        return;
+    }
+    fputs(prev->data, output);
+
+    int repeats = 0;
+    for (; count > 0; count--) {
+        if (prev->transition_count == 0) {
+            prev = random_token(hash_dictionary, rand());
+        }
+        int next = rand() % prev->frequency_sum + 1;
+
+        for (int j = 0; j < prev->transition_count; j++) {
+            if (next <= prev->frequencies[j]) {
+                // if (strchr(alphabet->punct, prev->transitions[j]->data[0]) == NULL) {
+                //     fputc(' ', output);
+                // }
+                curr = prev->transitions[j];
+                if (prev == curr) {
+                    if (repeats >= 3) {
+                        curr = random_token(hash_dictionary, rand());
+                        repeats = 0;
+                    }
+                    repeats++;
+                }
+
+                if (space_condition(alphabet, prev, curr)) {
+                    fputc(' ', output);
+                }
+
+
+                fputs(curr->data, output);
+                prev = curr;
+                break;
+            }
+
+            next -= prev->frequencies[j];
+        }
+    }
+
+    clock_t end = clock();
+    printf("generate: %lf seconds\n", (double) (end - begin) / CLOCKS_PER_SEC);
 }
