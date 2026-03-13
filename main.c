@@ -17,7 +17,7 @@
 
 char* gen_path = "output/";
 char* tok_path = "output/tokenized/";
-char* text_path = "assets/texts/";
+char* text_path = "assets/texts/bulgakov/";
 char* extension = ".txt";
 char* toked = "_tokenized";
 char* gen = "output/generated.txt";
