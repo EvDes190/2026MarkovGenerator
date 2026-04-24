@@ -7,9 +7,8 @@ from recoder import convert_to_windows1251 # Assuming recoder.py is in the same 
 
 # --- 语言选择 / Выбор языка ---
 languages = {
-    "zh": {"title": "马尔可夫链文本生成器", "upload_label": "上传文本文件", "generate_button": "生成文本", "output_header": "生成结果", "language_select": "选择语言", "generation_length_label": "生成文本长度 (单词)", "upload_success": "文件已上传，开始生成文本...", "generation_placeholder": "文本生成逻辑将在此处实现。", "output_placeholder": "这里将显示生成的文本。", "upload_warning": "请先上传一个文本文件。", "save_button": "保存生成文本", "input_encoding_label": "输入文件编码", "encoding_options": {"utf-8": "UTF-8", "windows-1251": "Windows-1251"}, "conversion_success": "文件编码转换成功，开始调用 Markov 生成器...", "markov_running": "Markov 生成器已运行。", "output_file_not_found": "无法找到生成的文本文件。", "markov_runtime_error": "Markov 生成器运行时出错: ", "main_exe_not_found": "错误: 找不到 main.exe。请确保它位于 '", "main_exe_not_found_suffix": "' 目录中。", "unknown_error": "发生未知错误: ", "conversion_failed": "文件编码转换失败。"},
-    "ru": {"title": "Генератор текста цепей Маркова", "upload_label": "Загрузить текстовый файл", "generate_button": "Сгенерировать текст", "output_header": "Сгенерированный текст", "language_select": "Выберите язык", "generation_length_label": "Длина генерируемого текста (слова)", "upload_success": "Файл загружен, начинается генерация текста...", "generation_placeholder": "Логика генерации текста будет реализована здесь.", "output_placeholder": "Здесь будет отображаться сгенерированный текст.", "upload_warning": "Пожалуйста, сначала загрузите текстовый файл.", "save_button": "Сохранить сгенерированный текст", "input_encoding_label": "Кодировка входного файла", "encoding_options": {"utf-8": "UTF-8", "windows-1251": "Windows-1251"}, "conversion_success": "Преобразование кодировки файла успешно, запуск генератора Маркова...", "markov_running": "Генератор Маркова запущен.", "output_file_not_found": "Не удалось найти сгенерированный текстовый файл.", "markov_runtime_error": "Ошибка выполнения генератора Маркова: ", "main_exe_not_found": "Ошибка: main.exe не найден. Убедитесь, что он находится в каталоге '", "main_exe_not_found_suffix": "'.", "unknown_error": "Произошла неизвестная ошибка: ", "conversion_failed": "Сбой преобразования кодировки файла."}
-}
+    "zh": {"title": "马尔可夫链文本处理工具", "upload_label": "上传文本文件", "generate_button": "处理文本", "output_header": "词法分析结果", "language_select": "选择语言", "generation_length_label": "生成文本长度 (单词)", "upload_success": "文件已上传，开始处理文本...", "generation_placeholder": "文本生成逻辑将在此处实现。", "output_placeholder": "这里将显示词法分析结果。", "upload_warning": "请先上传一个文本文件。", "save_button": "保存词法分析结果", "input_encoding_label": "输入文件编码", "encoding_options": {"utf-8": "UTF-8", "windows-1251": "Windows-1251"}, "conversion_success": "文件编码转换成功，开始调用 Markov 处理器...", "markov_running": "Markov 处理器已运行。", "output_file_not_found": "无法找到词法分析文件。", "markov_runtime_error": "Markov 处理器运行时出错: ", "main_exe_not_found": "错误: 找不到 main.exe。请确保它位于 '", "main_exe_not_found_suffix": "' 目录中。", "unknown_error": "发生未知错误: ", "conversion_failed": "文件编码转换失败。"},
+    "ru": {"title": "Инструмент обработки текста цепей Маркова", "upload_label": "Загрузить текстовый файл", "generate_button": "Обработать текст", "output_header": "Результат лексического анализа", "language_select": "Выберите язык", "generation_length_label": "Длина генерируемого текста (слова)", "upload_success": "Файл загружен, начинается обработка текста...", "generation_placeholder": "Логика генерации текста будет реализована здесь.", "output_placeholder": "Здесь будет отображаться результат лексического анализа.", "upload_warning": "Пожалуйста, сначала загрузите текстовый файл.", "save_button": "Сохранить результат лексического анализа", "input_encoding_label": "Кодировка входного файла", "encoding_options": {"utf-8": "UTF-8", "windows-1251": "Windows-1251"}, "conversion_success": "Преобразование кодировки файла успешно, запуск обработчика Маркова...", "markov_running": "Обработчик Маркова запущен.", "output_file_not_found": "Не удалось найти файл лексического анализа.", "markov_runtime_error": "Ошибка выполнения обработчика Маркова: ", "main_exe_not_found": "Ошибка: main.exe не найден. Убедитесь, что он находится в каталоге '", "main_exe_not_found_suffix": "'.", "unknown_error": "Произошла неизвестная ошибка: ", "conversion_failed": "Сбой преобразования кодировки файла."}}
 if "lang" not in st.session_state:
     st.session_state.lang = "ru" # 默认为俄语 / По умолчанию русский
 
@@ -77,22 +76,30 @@ if st.button(languages[st.session_state.lang]["generate_button"]):
                     process = subprocess.run(command, capture_output=True, text=True, check=True, encoding='windows-1251')
                     
                     st.write(languages[st.session_state.lang]["markov_running"])
-                    # 读取生成输出 / Прочитать сгенерированный вывод
-                    if os.path.exists(output_file_path):
-                        with open(output_file_path, "r", encoding='windows-1251', errors='ignore') as f:
-                            generated_text = f.read()
+
+                    # 构建词法分析后的文件路径 / Построить путь к токенизированному файлу
+                    # 假设 tokenized 文件名是 converted_file_path 的基础名 + "_tokenized.txt"
+                    base_file_name = os.path.basename(converted_file_path)
+                    name_without_ext = os.path.splitext(base_file_name)[0]
+                    tokenized_file_name = f"{name_without_ext}_tokenized.txt"
+                    tokenized_output_file_path = os.path.join(os.path.dirname(__file__), "output", "tokenized", tokenized_file_name)
+
+                    # 读取词法分析后的输出 / Прочитать токенизированный вывод
+                    if os.path.exists(tokenized_output_file_path):
+                        with open(tokenized_output_file_path, "r", encoding='windows-1251', errors='ignore') as f:
+                            displayed_text = f.read()
                         
                         st.subheader(languages[st.session_state.lang]["output_header"])
                         st.text_area(
                             "", # 标签为空，因为副标题已提供上下文 / Метка пуста, так как подзаголовок уже предоставляет контекст
-                            generated_text,
+                            displayed_text,
                             height=300, # 为文本区域设置一个合适的高度 / Установить разумную высоту для текстовой области
-                            key="generated_text_display"
+                            key="tokenized_text_display"
                         )
                         st.download_button(
                             label=languages[st.session_state.lang]["save_button"],
-                            data=generated_text.encode('windows-1251'), # 编码以匹配原始 C 输出 / Кодировать в соответствии с исходным выводом C
-                            file_name="generated_text.txt",
+                            data=displayed_text.encode('windows-1251'), # 编码以匹配原始 C 输出 / Кодировать в соответствии с исходным выводом C
+                            file_name=tokenized_file_name,
                             mime="text/plain"
                         )
                     else:
@@ -109,3 +116,4 @@ if st.button(languages[st.session_state.lang]["generate_button"]):
                 st.error(languages[st.session_state.lang]["conversion_failed"])
     else:
         st.warning(languages[st.session_state.lang]["upload_warning"])
+        
