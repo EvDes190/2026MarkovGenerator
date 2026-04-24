@@ -4,7 +4,7 @@ project(MarkovGenerator C)
 set(CMAKE_C_STANDARD 99)
 
 add_executable(MarkovGenerator main.c
-#        text_parser/text_parser.c
+#        text.c
 #        hash_table/hash_dictionary.c
 #        hash_table/linked_list.c
 )

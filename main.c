@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <time.h>
-#include <dir.h>
-#include <io.h>
 #include <dirent.h>
 
 #import "text.c"
@@ -17,28 +15,29 @@
 
 char* gen_path = "output/";
 char* tok_path = "output/tokenized/";
-char* text_path = "assets/texts/bulgakov/";
+char* text_path = "input/";
 char* extension = ".txt";
 char* toked = "_tokenized";
 char* gen = "output/generated.txt";
 char* chain = "output/chain.txt";
-
-
-int hash_size = 10000;
 
 int main() {
     setlocale(LC_ALL, "ru_RU.CP1251");
 
     int j = 0;
 
+    // FILE *f = fopen("output/tokenized/sobache_serdtse_1251_tokenized.txt", "w");
+    // printf("%p\n", f);
+    // fclose(f);
+
 
     Alphabet* alphabet = init_alphabet();
 
 
-    while (alphabet->punct[j] != '\0') {
-        printf("%d\n", alphabet->punct[j]);
-        j++;
-    }
+    // while (alphabet->punct[j] != '\0') {
+    //     printf("%d\n", alphabet->punct[j]);
+    //     j++;
+    // }
     dictionary* dictionary = init_dictionary(30000);
 
     DIR *dir = opendir(text_path);
@@ -53,14 +52,22 @@ int main() {
         split_filename(name, ext, entry->d_name);
 
         if (strcmp(ext, extension) == 0) {
+            printf("%s\n", name);
             cat(source_path, 3, text_path, name, extension);
             FILE *source = fopen(source_path, "rb");
+
             cat(tok, 4, tok_path, name, toked, extension);
-
-            FILE *tokenized = fopen(tok, "rwb");
+                FILE *debug = fopen("debug.txt", "wb");
+                // printf("%s %s\n", source_path, tok);
+            FILE *tokenized = fopen(tok, "w+");
             tokenize(source, tokenized, alphabet);
+            fclose(tokenized);
+            tokenized = fopen(tok, "r+b");
             text_processing(tokenized, dictionary);
+            printf("\n");
 
+            fclose(tokenized);
+            fclose(source);
             memset(source, 0, (strlen(text_path) + strlen(extension) + 260) * sizeof(char));
             memset(tok, 0, (strlen(tok_path) + strlen(toked) + strlen(extension) + 260) * sizeof(char));
             memset(ext, 0, 40 * sizeof(char));

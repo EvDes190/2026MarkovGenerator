@@ -74,7 +74,7 @@ void cat(char* buf, int n, ...) {
 void split_filename(char *name, char *ext, const char *source) {
     int len = strlen(source);
 
-    while (source[--len] != '.') {}
+    while (source[--len] != '.' && len >= 0) {}
     strcpy(ext, source + len);
     memcpy(name, source, len + 1);
     name[len] = '\0';
@@ -99,6 +99,7 @@ int tokenize(FILE *input, FILE *output, Alphabet* alphabet) {
             buffer[buffer_top + 1] = '\0';
             fputs(buffer, output);
             buffer_top = -1;
+            memset(buffer, 0, sizeof(char) * 1024);
             token_reading = 0;
         }
 
@@ -132,7 +133,7 @@ int tokenize(FILE *input, FILE *output, Alphabet* alphabet) {
     }
     buffer[++buffer_top] = '\0';
 
-    fputs(buffer, output);
+    // fputs(buffer, output);
 
     clock_t end = clock();
     printf("tokenize: %lf seconds\n", (double) (end - begin) / CLOCKS_PER_SEC);
