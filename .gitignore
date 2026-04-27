@@ -1,0 +1,17 @@
+# Python 字节码缓存 Python bytecode caching
+__pycache__/
+*.pyc
+*.pyo
+
+# C 编译产物 C compilation artifacts
+build/
+*.o
+*.exe
+
+# 运行时生成的临时目录 Temporary directory generated at runtime
+input/
+output/tokenized/
+
+# 编辑器 editor
+.idea/
+.vscode/
