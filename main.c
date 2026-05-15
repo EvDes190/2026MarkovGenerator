@@ -5,8 +5,9 @@
 #include <time.h>
 #include <dirent.h>
 
-#import "text.c"
-#import "hash_table/hash_dictionary.c"
+// #import "text.c"
+// #import "hash_table/hash_dictionary.c"
+#include "text.h"
 
 
 /*

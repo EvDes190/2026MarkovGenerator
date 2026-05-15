@@ -1,24 +1,12 @@
 #include <stdlib.h>
 #include <x86intrin.h>
 #include <time.h>
+#include <stdio.h>
 
-#import "linked_list.c"
+// #import "linked_list.c"
+// #include "linked_list.h"
+#include "hash_dictionary.h"
 
-typedef struct Hash_Dictionary {
-    List** buckets;
-    int size;
-} dictionary;
-
-/*
- * functions for work with Hash table
- */
-unsigned int hash(char *token);
-node* get_token(char *token, dictionary* dictionary);
-node* put_token(char *token, dictionary *dictionary);
-dictionary* init_dictionary(int size);
-void free_dictionary(dictionary* dictionary);
-node* random_token(dictionary* hash_dictionary, int seed);
-void print_chain(dictionary *hash_dictionary, FILE* output);
 
 unsigned int hash(char *token) {
     // using djb hash-function

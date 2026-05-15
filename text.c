@@ -4,19 +4,8 @@
 #include <time.h>
 #include <stdarg.h>
 
-#import "hash_table/hash_dictionary.c"
+#include "text.h"
 
-typedef struct Alphabet {
-    char* rus_lower;
-    char* rus_higher;
-
-    char* eng_lower;
-    char* eng_higher;
-
-    char* punct;
-    char* special;
-    char* number;
-} Alphabet;
 
 Alphabet* init_alphabet() {
     Alphabet* alphabet = malloc(sizeof(Alphabet));
