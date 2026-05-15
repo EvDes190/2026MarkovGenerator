@@ -1,0 +1,6 @@
+/.venv/
+/output/
+/examples/
+/input/
+/cmake-build-debug/
+/.idea/
