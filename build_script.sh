@@ -1,0 +1,1 @@
+gcc -o main.exe main.c text.c hash_table/hash_dictionary.c hash_table/linked_list.c

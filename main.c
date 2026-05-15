@@ -5,9 +5,9 @@
 #include <time.h>
 #include <dirent.h>
 
-// #import "text.c"
-// #import "hash_table/hash_dictionary.c"
 #include "text.h"
+#include "hash_table/hash_dictionary.h"
+#include "hash_table/linked_list.h"
 
 
 /*
@@ -58,7 +58,7 @@ int main() {
             FILE *source = fopen(source_path, "rb");
 
             cat(tok, 4, tok_path, name, toked, extension);
-                FILE *debug = fopen("debug.txt", "wb");
+                // FILE *debug = fopen("debug.txt", "wb");
                 // printf("%s %s\n", source_path, tok);
             FILE *tokenized = fopen(tok, "w+");
             tokenize(source, tokenized, alphabet);
