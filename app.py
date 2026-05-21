@@ -28,7 +28,8 @@ languages = {
         "main_exe_not_found": "错误: 找不到 main.exe。请确保它位于 '",
         "main_exe_not_found_suffix": "' 目录中。",
         "unknown_error": "发生未知错误: ",
-        "conversion_failed": "文件编码转换失败。"
+        "conversion_failed": "文件编码转换失败。",
+        "processing_file": "正在处理文件: "
     },
     "ru": {
         "title": "Генератор текста цепей Маркова",
@@ -51,7 +52,8 @@ languages = {
         "main_exe_not_found": "Ошибка: main.exe не найден. Убедитесь, что он находится в каталоге '",
         "main_exe_not_found_suffix": "'.",
         "unknown_error": "Произошла неизвестная ошибка: ",
-        "conversion_failed": "Сбой преобразования кодировки файла."
+        "conversion_failed": "Сбой преобразования кодировки файла.",
+        "processing_file": "Обработка файла: "
     }
 }
 
@@ -75,7 +77,7 @@ if selected_lang != st.session_state.lang:
 st.title(languages[st.session_state.lang]["title"])
 
 # --- 侧边栏：文件上传控件 / Боковая панель: виджет загрузки файла ---
-uploaded_file = st.sidebar.file_uploader(languages[st.session_state.lang]["upload_label"], type=["txt"])
+uploaded_files = st.sidebar.file_uploader(languages[st.session_state.lang]["upload_label"], type=["txt"], accept_multiple_files=True)
 
 # --- 侧边栏：输入文件编码选择 / Боковая панель: выбор кодировки входного файла ---
 encoding_options_display = list(languages[st.session_state.lang]["encoding_options"].values())
@@ -96,105 +98,121 @@ generation_length = st.sidebar.slider(
 
 # --- 主区域：点击"生成文本"按钮后的处理逻辑 / Основная область: логика обработки после нажатия кнопки ---
 if st.button(languages[st.session_state.lang]["generate_button"]):
-    if uploaded_file is not None:
+    # 如果用户上传了文件 / Если пользователь загрузил файлы
+    if uploaded_files:
         st.write(languages[st.session_state.lang]["upload_success"])
 
-        # 获取当前脚本所在目录作为项目根目录 / Получение директории скрипта как корня проекта
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
-        #  清空并重建 input/ 目录，写入本次上传的文件
-        #    Очистка и пересоздание папки input/, запись загруженного файла
+        # 清空 input/ 目录，为本次所有上传文件做准备 / Очистка папки input/ для всех загруженных файлов
         input_dir = os.path.join(base_dir, "input")
         if os.path.exists(input_dir):
-            shutil.rmtree(input_dir)  # 删除旧目录 / Удаление старой папки
+            shutil.rmtree(input_dir)
         os.makedirs(input_dir)
 
         # 确保 output/tokenized/ 目录存在（main.exe 运行时需要）
-        # Убедиться, что папка output/tokenized/ существует (требуется для main.exe)
         tok_dir = os.path.join(base_dir, "output", "tokenized")
         os.makedirs(tok_dir, exist_ok=True)
 
-        # 预创建 tokenized 文件，防止 main.exe 内 fopen 返回 NULL 导致崩溃
-        # Предварительное создание tokenized-файла, чтобы fopen в main.exe не вернул NULL
-        input_filename = "uploaded"
-        tok_file = os.path.join(tok_dir, f"{input_filename}_tokenized.txt")
-        open(tok_file, "w").close()
+        # 准备一个列表来存储每个文件的处理结果 / Подготовка списка для хранения результатов обработки каждого файла
+        all_generated_texts = []
 
-        # 将上传文件先存到临时目录，再用 recoder.py 转码为 Windows-1251 写入 input/
-        # Сохранение загруженного файла во временную папку, затем перекодировка в Windows-1251 и запись в input/
-        with tempfile.TemporaryDirectory() as tmpdir:
-            raw_path = os.path.join(tmpdir, "raw_upload.txt")       # 原始上传文件 / Исходный загруженный файл
-            converted_path = os.path.join(input_dir, f"{input_filename}.txt")  # 转码后文件 / Перекодированный файл
+        # 遍历所有上传的文件 / Перебор всех загруженных файлов
+        for uploaded_file in uploaded_files:
+            # 获取原始文件名（不含扩展名）和扩展名 / Получить исходное имя файла (без расширения) и расширение
+            original_base_name = os.path.splitext(uploaded_file.name)[0]
+            original_extension = os.path.splitext(uploaded_file.name)[1]
+            st.info(f"{languages[st.session_state.lang]["processing_file"]}{uploaded_file.name}")
 
-            with open(raw_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+            # 将每个上传文件直接保存到 input/ 目录，保持原始文件名 / Сохранить каждый загруженный файл напрямую в input/, сохраняя исходное имя файла
+            with tempfile.TemporaryDirectory() as tmpdir:
+                # 构建原始上传文件的临时路径 / Создать временный путь для исходного загруженного файла
+                raw_path = os.path.join(tmpdir, uploaded_file.name)
+                # 注意：这里直接使用原始文件名保存到 input/ 目录 / Внимание: здесь файл сохраняется в input/ с исходным именем файла
+                converted_path_in_input = os.path.join(input_dir, uploaded_file.name)
 
-            # 调用 recoder.py 进行编码转换 / Вызов recoder.py для перекодировки
-            conversion_success = convert_to_windows1251(raw_path, converted_path, encoding_in=input_encoding)
+                # 将上传文件的内容写入临时原始文件 / Записать содержимое загруженного файла во временный исходный файл
+                with open(raw_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
 
-        if conversion_success:
-            st.write(languages[st.session_state.lang]["conversion_success"])
-            try:
-                main_exe_path = os.path.join(base_dir, "main.exe")
+                # 调用 recoder.py 进行编码转换并保存到 input/ 目录 / Вызов recoder.py для перекодировки и сохранения в input/
+                conversion_success = convert_to_windows1251(raw_path, converted_path_in_input, encoding_in=input_encoding)
 
-                #  以项目根目录为工作目录运行 main.exe，保证相对路径（input/、output/）正确解析
-                #    Запуск main.exe с рабочей директорией проекта для корректного разрешения относительных путей
-                process = subprocess.run(
-                    [main_exe_path],
-                    cwd=base_dir,        # 工作目录 / Рабочая директория
-                    capture_output=True,
-                    check=True,
-                    encoding='windows-1251'
+                # 如果文件编码转换失败 / Если преобразование кодировки файла не удалось
+                if not conversion_success:
+                    st.error(f"{languages[st.session_state.lang]["conversion_failed"]} (File: {uploaded_file.name})")
+                    continue # 如果当前文件转换失败，则跳过后续处理 / Если преобразование текущего файла не удалось, пропустить дальнейшую обработку
+
+        # 所有文件转换并保存到 input/ 后，再运行 main.exe 一次 / После преобразования и сохранения всех файлов в input/, запустить main.exe один раз
+        # 预创建 tokenized 文件，防止 main.exe 内 fopen 返回 NULL 导致崩溃 (此步骤移至此处，只执行一次)
+        # Предварительное создание tokenized-файла, чтобы fopen в main.exe не вернул NULL (этот шаг перемещен сюда, выполняется один раз)
+        input_filename_for_exe_placeholder = "uploaded" # 假设 main.exe 仍然会查找这个占位文件 / Предполагается, что main.exe все еще будет искать этот файл-заполнитель
+        tok_file_for_exe = os.path.join(tok_dir, f"{input_filename_for_exe_placeholder}_tokenized.txt")
+        open(tok_file_for_exe, "w").close()  # 预创建空文件 / Предварительное создание пустого файла
+
+        try:
+            main_exe_path = os.path.join(base_dir, "main.exe")
+
+            # 以 base_dir 为工作目录运行 main.exe，保证相对路径正确
+            # Запуск main.exe с рабочей директорией base_dir для корректного разрешения относительных путей
+            process = subprocess.run(
+                [main_exe_path],
+                cwd=base_dir,
+                capture_output=True,
+                check=True,
+                encoding='windows-1251'
+            )
+
+            st.write(languages[st.session_state.lang]["markov_running"])
+
+            # 读取 main.exe 固定写出的 output/generated.txt (假设这是所有输入的总结果)
+            # Чтение файла output/generated.txt, который всегда создаётся main.exe (предполагается, что это общий результат всех входных данных)
+            output_file_path_from_exe = os.path.join(base_dir, "output", "generated.txt")
+
+            # 检查生成的总结果文件是否存在 / Проверить, существует ли общий файл результатов
+            if os.path.exists(output_file_path_from_exe):
+                # 以 Windows-1251 编码读取生成的文本 / Считать сгенерированный текст в кодировке Windows-1251
+                with open(output_file_path_from_exe, "r", encoding='windows-1251', errors='ignore') as f:
+                    full_text = f.read()
+
+                # 按词数截取：main.exe 生成约10万词，这里取前 generation_length 个词 / Обрезка по количеству слов: main.exe генерирует ~100000 слов, берём первые generation_length
+                words = full_text.split()
+                generated_text = " ".join(words[:generation_length])
+
+                # 显示生成结果的标题 / Заголовок для отображения результатов генерации
+                st.subheader(languages[st.session_state.lang]["output_header"])
+                st.text_area(
+                    "所有文件的生成结果 / Результат генерации для всех файлов",
+                    generated_text,
+                    height=300,
+                    key="generated_text_display_all"
                 )
 
-                st.write(languages[st.session_state.lang]["markov_running"])
+                # 提供下载按钮，以 Windows-1251 编码保存 / Кнопка скачивания, сохранение в кодировке Windows-1251
+                st.download_button(
+                    label=languages[st.session_state.lang]["save_button"] + " (所有文件 / Все файлы)",
+                    data=generated_text.encode('windows-1251'),
+                    file_name="all_generated_text.txt",
+                    mime="text/plain",
+                    key="download_button_all"
+                )
+                # 清理 generated.txt，确保下次运行时是新的结果 / Очистка generated.txt, чтобы при следующем запуске был новый результат
+                os.remove(output_file_path_from_exe)
 
-                #  读取 main.c 固定输出的 output/generated.txt
-                #    Чтение файла output/generated.txt, который всегда создаётся main.c
-                output_file_path = os.path.join(base_dir, "output", "generated.txt")
+            else:
+                # 如果生成文件未找到，则显示错误信息 / Если сгенерированный файл не найден, отобразить сообщение об ошибке
+                st.error(languages[st.session_state.lang]["output_file_not_found"])
 
-                if os.path.exists(output_file_path):
-                    with open(output_file_path, "r", encoding='windows-1251', errors='ignore') as f:
-                        full_text = f.read()
-
-                    # 按词数截取：main.exe 生成约10万词，这里取前 generation_length 个词
-                    # Обрезка по количеству слов: main.exe генерирует ~100000 слов, берём первые generation_length
-                    words = full_text.split()
-                    generated_text = " ".join(words[:generation_length])
-
-                    # 显示生成结果 / Отображение результата генерации
-                    st.subheader(languages[st.session_state.lang]["output_header"])
-                    st.text_area(
-                        "",
-                        generated_text,
-                        height=300,
-                        key="generated_text_display"
-                    )
-
-                    # 提供下载按钮，以 Windows-1251 编码保存 / Кнопка скачивания, сохранение в кодировке Windows-1251
-                    st.download_button(
-                        label=languages[st.session_state.lang]["save_button"],
-                        data=generated_text.encode('windows-1251'),
-                        file_name="generated_text.txt",
-                        mime="text/plain"
-                    )
-                else:
-                    # output/generated.txt 不存在时报错 / Ошибка, если файл output/generated.txt не найден
-                    st.error(languages[st.session_state.lang]["output_file_not_found"])
-
-            except subprocess.CalledProcessError as e:
-                # main.exe 返回非零退出码 / main.exe вернул ненулевой код завершения
-                st.error(f"{languages[st.session_state.lang]['markov_runtime_error']}{e}")
-                st.code(e.stderr)
-            except FileNotFoundError:
-                # main.exe 文件不存在 / Файл main.exe не найден
-                st.error(f"{languages[st.session_state.lang]['main_exe_not_found']}{os.path.dirname(__file__)}{languages[st.session_state.lang]['main_exe_not_found_suffix']}")
-            except Exception as e:
-                # 其他未知异常 / Прочие неизвестные исключения
-                st.error(f"{languages[st.session_state.lang]['unknown_error']}{e}")
-        else:
-            # 编码转换失败 / Ошибка перекодировки файла
-            st.error(languages[st.session_state.lang]["conversion_failed"])
+        except subprocess.CalledProcessError as e:
+            # main.exe 返回非零退出码，表示运行出错 / main.exe вернул ненулевой код завершения, указывая на ошибку выполнения
+            st.error(f"{languages[st.session_state.lang]['markov_runtime_error']}{e}")
+            st.code(e.stderr)
+        except FileNotFoundError:
+            # main.exe 文件不存在 / Файл main.exe не найден
+            st.error(f"{languages[st.session_state.lang]['main_exe_not_found']}{os.path.dirname(__file__)}{languages[st.session_state.lang]['main_exe_not_found_suffix']}")
+        except Exception as e:
+            # 捕获其他未知异常 / Перехват других неизвестных исключений
+            st.error(f"{languages[st.session_state.lang]['unknown_error']}{e}")
     else:
-        # 未上传文件时提示 / Предупреждение, если файл не загружен
+        # 如果没有上传文件，则显示警告信息 / Предупреждение, если файл не загружен
         st.warning(languages[st.session_state.lang]["upload_warning"])
